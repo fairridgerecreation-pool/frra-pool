@@ -265,6 +265,23 @@ footer {
 
 </div>
 
+<!-- Firebase Realtime Database -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAdqbfTgueEY88c0K569-aQOWRzv9iIbdE",
+  authDomain: "frra-pool-dashboard.firebaseapp.com",
+  databaseURL: "https://frra-pool-dashboard-default-rtdb.firebaseio.com",
+  projectId: "frra-pool-dashboard",
+  storageBucket: "frra-pool-dashboard.firebasestorage.app",
+  messagingSenderId: "485716370135",
+  appId: "1:485716370135:web:12c365eb655ee31853c692"
+};
+firebase.initializeApp(firebaseConfig);
+const frraRef = firebase.database().ref('dashboard');
+</script>
+
 <script>
 // ── Clock ──
 function tick() {
@@ -336,13 +353,17 @@ function render(d) {
   const st=document.getElementById('d-status');
   st.textContent=d.status||'Open';
   st.className=d.status==='Closed'?'closed':d.status==='Restricted'?'restricted':'';
-  // Capacity
-  const pct=Math.min(100,Math.round((d.capacity||0)/248*100));
+  // Capacity (safe check because this layout may not include capacity widgets)
   const fill=document.getElementById('d-cap-fill');
-  fill.style.width=pct+'%';
-  fill.style.background=pct>=90?'linear-gradient(90deg,#EF476F,#ff8fa3)':pct>=70?'linear-gradient(90deg,#FFD166,#ffe599)':'linear-gradient(90deg,#06D6A0,#00B4D8)';
-  document.getElementById('d-cap-nums').textContent=(d.capacity||0)+' / 248';
-  document.getElementById('d-cap-pct').textContent=pct+'% full';
+  const capNums=document.getElementById('d-cap-nums');
+  const capPct=document.getElementById('d-cap-pct');
+  if (fill && capNums && capPct) {
+    const pct=Math.min(100,Math.round((d.capacity||0)/248*100));
+    fill.style.width=pct+'%';
+    fill.style.background=pct>=90?'linear-gradient(90deg,#EF476F,#ff8fa3)':pct>=70?'linear-gradient(90deg,#FFD166,#ffe599)':'linear-gradient(90deg,#06D6A0,#00B4D8)';
+    capNums.textContent=(d.capacity||0)+' / 248';
+    capPct.textContent=pct+'% full';
+  }
   // Duty
   const dutyEl=document.getElementById('d-duty');
   dutyEl.innerHTML=(d.duty&&d.duty.length)?d.duty.map(n=>`<span class="duty-chip">${n}</span>`).join(''):'<span style="font-size:12px;color:#5A8AA0;font-style:italic">Not entered</span>';
@@ -379,12 +400,22 @@ function render(d) {
   if(d.updatedAt) document.getElementById('d-updated').textContent='Updated: '+d.updatedAt;
 }
 
-// ── Load & auto-refresh ──
-function load() {
+// ── Load & live Firebase refresh ──
+function loadLocalBackup() {
   try { const d=localStorage.getItem('frraData'); if(d) render(JSON.parse(d)); } catch(e){}
 }
-load();
-setInterval(load, 3000); // re-check every 3 seconds
+loadLocalBackup();
+
+frraRef.on('value', (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    localStorage.setItem('frraData', JSON.stringify(data));
+    render(data);
+  }
+}, (error) => {
+  console.error('Firebase read failed:', error);
+  loadLocalBackup();
+});
 </script>
 </body>
 </html>

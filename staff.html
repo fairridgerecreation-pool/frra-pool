@@ -331,7 +331,7 @@ select option { background:#011628; }
 
 <!-- Save bar -->
 <div class="save-bar">
-  <p>Changes are saved locally and published to the TV dashboard instantly.</p>
+  <p>Changes are saved to Firebase and published to the TV dashboard instantly.</p>
   <div style="display:flex;gap:12px;align-items:center">
     <span id="save-status"></span>
     <button class="btn btn-success" onclick="saveAll()">💾 Save &amp; Publish</button>
@@ -339,6 +339,23 @@ select option { background:#011628; }
 </div>
 
 <div class="toast" id="toast">✅ Published to Dashboard!</div>
+
+<!-- Firebase Realtime Database -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAdqbfTgueEY88c0K569-aQOWRzv9iIbdE",
+  authDomain: "frra-pool-dashboard.firebaseapp.com",
+  databaseURL: "https://frra-pool-dashboard-default-rtdb.firebaseio.com",
+  projectId: "frra-pool-dashboard",
+  storageBucket: "frra-pool-dashboard.firebasestorage.app",
+  messagingSenderId: "485716370135",
+  appId: "1:485716370135:web:12c365eb655ee31853c692"
+};
+firebase.initializeApp(firebaseConfig);
+const frraRef = firebase.database().ref('dashboard');
+</script>
 
 <script>
 // ── Auth guard ──
@@ -462,7 +479,7 @@ async function fetchWeather() {
   }
 }
 
-function saveAll() {
+async function saveAll() {
   try {
     const data = {
       status:    poolStatus,
@@ -484,6 +501,7 @@ function saveAll() {
       updatedAt: new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),
     };
     localStorage.setItem('frraData', JSON.stringify(data));
+    await frraRef.set(data);
     const status=document.getElementById('save-status');
     status.textContent='✅ Published at '+data.updatedAt;
     const toast=document.getElementById('toast');
@@ -534,6 +552,40 @@ function logout() {
 }
 
 loadSaved();
+
+// Also load the latest Firebase data when the staff page opens
+frraRef.once('value').then((snapshot) => {
+  const d = snapshot.val();
+  if (!d) return;
+  localStorage.setItem('frraData', JSON.stringify(d));
+  poolStatus=d.status||'Open';
+  document.querySelectorAll('#statusGroup .status-opt').forEach(b=>{
+    b.className='status-opt';
+    if(b.dataset.v===poolStatus) b.classList.add(poolStatus==='Open'?'sel-open':poolStatus==='Closed'?'sel-closed':'sel-restricted');
+  });
+  document.getElementById('f-wq-time').value=d.wqTime||'';
+  dutyList=d.duty||[]; renderTags();
+  document.getElementById('f-m-cl').value=d.mainCl??'';
+  document.getElementById('f-m-ph').value=d.mainPh??'';
+  document.getElementById('f-m-tmp').value=d.mainTemp??'';
+  document.getElementById('f-w-cl').value=d.wadCl??'';
+  document.getElementById('f-w-ph').value=d.wadPh??'';
+  document.getElementById('f-w-tmp').value=d.wadTemp??'';
+  document.getElementById('f-wx-tmp').value=d.wxTemp??'';
+  document.getElementById('f-wx-feel').value=d.wxFeels??'';
+  document.getElementById('f-wx-wind').value=d.wxWind??'';
+  wxCond=d.wxCond||'Sunny';
+  document.querySelectorAll('#wxGrid .wx-opt').forEach(b=>{
+    b.classList.remove('sel'); if(b.dataset.v===wxCond) b.classList.add('sel');
+  });
+  document.getElementById('f-notice').value=d.notice||'';
+  document.getElementById('f-ticker').value=d.ticker||'';
+  if(d.slides&&d.slides.length){slideImages=d.slides; renderSlides();}
+  if(d.updatedAt) document.getElementById('save-status').textContent='Last Firebase save: '+d.updatedAt;
+}).catch((error) => {
+  console.error('Firebase load failed:', error);
+});
+
 </script>
 </body>
 </html>
