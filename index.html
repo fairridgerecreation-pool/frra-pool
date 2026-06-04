@@ -384,7 +384,7 @@ function load() {
   try { const d=localStorage.getItem('frraData'); if(d) render(JSON.parse(d)); } catch(e){}
 }
 load();
-setInterval(load, 10000); // re-check every 10s
+setInterval(load, 3000); // re-check every 3 seconds
 </script>
 </body>
 </html>

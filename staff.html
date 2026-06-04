@@ -425,48 +425,42 @@ async function fetchWeather() {
   if (!zip || zip.length !== 5) { status.textContent = '⚠️ Enter a valid 5-digit zip code'; status.style.color='#FFD166'; return; }
   status.textContent = '⏳ Fetching...'; status.style.color='#90E0EF';
   try {
-    // Step 1: zip to lat/lon using free geocoding API
-    const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=US&format=json&limit=1`);
-    const geoData = await geoRes.json();
-    if (!geoData.length) { status.textContent = '❌ Zip code not found'; status.style.color='#EF476F'; return; }
-    const lat = parseFloat(geoData[0].lat);
-    const lon = parseFloat(geoData[0].lon);
-    // Step 2: get weather from Open-Meteo (free, no API key!)
-    const wxRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=1`);
-    const wxData = await wxRes.json();
-    const cur = wxData.current;
+    // wttr.in - free, no API key, no CORS issues
+    const res = await fetch(`https://wttr.in/${zip}?format=j1`);
+    const data = await res.json();
+    const cur = data.current_condition[0];
+    const tempF = parseInt(cur.temp_F);
+    const feelsF = parseInt(cur.FeelsLikeF);
+    const windMph = parseInt(cur.windspeedMiles);
+    const desc = cur.weatherDesc[0].value.toLowerCase();
     // Fill in fields
-    document.getElementById('f-wx-tmp').value  = Math.round(cur.temperature_2m);
-    document.getElementById('f-wx-feel').value = Math.round(cur.apparent_temperature);
-    document.getElementById('f-wx-wind').value = Math.round(cur.wind_speed_10m);
-    // Map weather code to condition
-    const code = cur.weather_code;
+    document.getElementById('f-wx-tmp').value  = tempF;
+    document.getElementById('f-wx-feel').value = feelsF;
+    document.getElementById('f-wx-wind').value = windMph;
+    // Map description to condition
     let cond = 'Sunny';
-    if (code === 0)                        cond = 'Sunny';
-    else if (code <= 2)                    cond = 'Partly Cloudy';
-    else if (code === 3)                   cond = 'Cloudy';
-    else if (code >= 51 && code <= 67)     cond = 'Rainy';
-    else if (code >= 71 && code <= 77)     cond = 'Cloudy';
-    else if (code >= 80 && code <= 82)     cond = 'Rainy';
-    else if (code >= 95 && code <= 99)     cond = 'Thunderstorm';
-    if (cur.wind_speed_10m > 20)           cond = 'Windy';
-    if (cur.temperature_2m > 95)           cond = 'Hot';
-    // Set sky condition
+    if (desc.includes('thunder') || desc.includes('storm'))     cond = 'Thunderstorm';
+    else if (desc.includes('rain') || desc.includes('drizzle')) cond = 'Rainy';
+    else if (desc.includes('overcast') || desc.includes('cloudy') && !desc.includes('partly')) cond = 'Cloudy';
+    else if (desc.includes('partly') || desc.includes('partial')) cond = 'Partly Cloudy';
+    else if (desc.includes('clear') || desc.includes('sunny'))  cond = 'Sunny';
+    else if (desc.includes('wind'))  cond = 'Windy';
+    if (windMph > 20) cond = 'Windy';
+    if (tempF > 95)   cond = 'Hot';
+    // Set sky condition button
     document.querySelectorAll('#wxGrid .wx-opt').forEach(b => {
       b.classList.remove('sel');
       if (b.dataset.v === cond) b.classList.add('sel');
     });
     wxCond = cond;
-    // Save zip for next time
     localStorage.setItem('frraZip', zip);
-    status.textContent = `✅ Updated! ${Math.round(cur.temperature_2m)}°F · ${cond}`;
+    status.textContent = `✅ ${tempF}°F · Feels like ${feelsF}°F · ${cond}`;
     status.style.color = '#06D6A0';
   } catch(e) {
-    status.textContent = '❌ Could not fetch weather. Check connection.';
+    status.textContent = '❌ Could not fetch weather. Try again.';
     status.style.color = '#EF476F';
   }
 }
-
 
 function saveAll() {
   try {
