@@ -244,12 +244,23 @@ select option { background:#011628; }
   </div>
 
   <!-- ── Weather ── -->
-  <div class="section" id="sec-wx">
+  <div class="section open" id="sec-wx">
     <div class="section-header" onclick="toggle('sec-wx')">
       <h2><span class="icon">🌤️</span> Weather Conditions</h2>
       <span class="chevron">▼</span>
     </div>
     <div class="section-body">
+      <!-- Zip code auto-fetch -->
+      <div style="background:rgba(0,180,216,0.08);border:1px solid rgba(0,180,216,0.25);border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--aqua);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">🔄 Auto-Fetch Weather by Zip Code</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="f-zipcode" placeholder="Enter zip code e.g. 22033" maxlength="5" style="max-width:200px"/>
+          <button class="btn btn-primary" onclick="fetchWeather()">🌡️ Get Weather</button>
+          <span id="wx-fetch-status" style="font-size:13px;color:var(--teal)"></span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Weather updates automatically. You can still adjust manually below if needed.</div>
+      </div>
+      <!-- Manual fields -->
       <div class="form-grid cols3" style="margin-bottom:16px">
         <div class="field"><label>Air Temp (°F)</label><input type="number" id="f-wx-tmp" placeholder="e.g. 85"/></div>
         <div class="field"><label>Feels Like (°F)</label><input type="number" id="f-wx-feel" placeholder="e.g. 90"/></div>
@@ -407,33 +418,85 @@ function renderSlides() {
 function delSlide(i) { slideImages.splice(i,1); renderSlides(); }
 function clearSlides() { if(confirm('Remove all slides?')){slideImages=[];renderSlides();} }
 
-// ── Save ──
+// ── Auto Weather by Zip Code ──
+async function fetchWeather() {
+  const zip = document.getElementById('f-zipcode').value.trim();
+  const status = document.getElementById('wx-fetch-status');
+  if (!zip || zip.length !== 5) { status.textContent = '⚠️ Enter a valid 5-digit zip code'; status.style.color='#FFD166'; return; }
+  status.textContent = '⏳ Fetching...'; status.style.color='#90E0EF';
+  try {
+    // Step 1: zip to lat/lon using free geocoding API
+    const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=US&format=json&limit=1`);
+    const geoData = await geoRes.json();
+    if (!geoData.length) { status.textContent = '❌ Zip code not found'; status.style.color='#EF476F'; return; }
+    const lat = parseFloat(geoData[0].lat);
+    const lon = parseFloat(geoData[0].lon);
+    // Step 2: get weather from Open-Meteo (free, no API key!)
+    const wxRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=1`);
+    const wxData = await wxRes.json();
+    const cur = wxData.current;
+    // Fill in fields
+    document.getElementById('f-wx-tmp').value  = Math.round(cur.temperature_2m);
+    document.getElementById('f-wx-feel').value = Math.round(cur.apparent_temperature);
+    document.getElementById('f-wx-wind').value = Math.round(cur.wind_speed_10m);
+    // Map weather code to condition
+    const code = cur.weather_code;
+    let cond = 'Sunny';
+    if (code === 0)                        cond = 'Sunny';
+    else if (code <= 2)                    cond = 'Partly Cloudy';
+    else if (code === 3)                   cond = 'Cloudy';
+    else if (code >= 51 && code <= 67)     cond = 'Rainy';
+    else if (code >= 71 && code <= 77)     cond = 'Cloudy';
+    else if (code >= 80 && code <= 82)     cond = 'Rainy';
+    else if (code >= 95 && code <= 99)     cond = 'Thunderstorm';
+    if (cur.wind_speed_10m > 20)           cond = 'Windy';
+    if (cur.temperature_2m > 95)           cond = 'Hot';
+    // Set sky condition
+    document.querySelectorAll('#wxGrid .wx-opt').forEach(b => {
+      b.classList.remove('sel');
+      if (b.dataset.v === cond) b.classList.add('sel');
+    });
+    wxCond = cond;
+    // Save zip for next time
+    localStorage.setItem('frraZip', zip);
+    status.textContent = `✅ Updated! ${Math.round(cur.temperature_2m)}°F · ${cond}`;
+    status.style.color = '#06D6A0';
+  } catch(e) {
+    status.textContent = '❌ Could not fetch weather. Check connection.';
+    status.style.color = '#EF476F';
+  }
+}
+
+
 function saveAll() {
-  const data = {
-    status:    poolStatus,
-    capacity:  parseInt(document.getElementById('f-capacity').value)||0,
-    duty:      [...dutyList],
-    wqTime:    document.getElementById('f-wq-time').value,
-    mainCl:    parseFloat(document.getElementById('f-m-cl').value)||null,
-    mainPh:    parseFloat(document.getElementById('f-m-ph').value)||null,
-    mainTemp:  parseFloat(document.getElementById('f-m-tmp').value)||null,
-    wadCl:     parseFloat(document.getElementById('f-w-cl').value)||null,
-    wadPh:     parseFloat(document.getElementById('f-w-ph').value)||null,
-    wadTemp:   parseFloat(document.getElementById('f-w-tmp').value)||null,
-    wxTemp:    parseInt(document.getElementById('f-wx-tmp').value)||null,
-    wxFeels:   parseInt(document.getElementById('f-wx-feel').value)||null,
-    wxWind:    parseInt(document.getElementById('f-wx-wind').value)||null,
-    wxCond:    wxCond,
-    notice:    document.getElementById('f-notice').value.trim(),
-    ticker:    document.getElementById('f-ticker').value.trim(),
-    slides:    slideImages,
-    updatedAt: new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),
-  };
-  localStorage.setItem('frraData', JSON.stringify(data));
-  const status=document.getElementById('save-status');
-  status.textContent='✅ Published at '+data.updatedAt;
-  const toast=document.getElementById('toast');
-  toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2800);
+  try {
+    const data = {
+      status:    poolStatus,
+      duty:      [...dutyList],
+      wqTime:    document.getElementById('f-wq-time').value,
+      mainCl:    parseFloat(document.getElementById('f-m-cl').value)||null,
+      mainPh:    parseFloat(document.getElementById('f-m-ph').value)||null,
+      mainTemp:  parseFloat(document.getElementById('f-m-tmp').value)||null,
+      wadCl:     parseFloat(document.getElementById('f-w-cl').value)||null,
+      wadPh:     parseFloat(document.getElementById('f-w-ph').value)||null,
+      wadTemp:   parseFloat(document.getElementById('f-w-tmp').value)||null,
+      wxTemp:    parseInt(document.getElementById('f-wx-tmp').value)||null,
+      wxFeels:   parseInt(document.getElementById('f-wx-feel').value)||null,
+      wxWind:    parseInt(document.getElementById('f-wx-wind').value)||null,
+      wxCond:    wxCond,
+      notice:    document.getElementById('f-notice').value.trim(),
+      ticker:    document.getElementById('f-ticker').value.trim(),
+      slides:    slideImages,
+      updatedAt: new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),
+    };
+    localStorage.setItem('frraData', JSON.stringify(data));
+    const status=document.getElementById('save-status');
+    status.textContent='✅ Published at '+data.updatedAt;
+    const toast=document.getElementById('toast');
+    toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2800);
+  } catch(e) {
+    alert('Error saving: ' + e.message);
+  }
 }
 
 // ── Load saved ──
@@ -446,7 +509,7 @@ function loadSaved() {
     b.className='status-opt';
     if(b.dataset.v===poolStatus) b.classList.add(poolStatus==='Open'?'sel-open':poolStatus==='Closed'?'sel-closed':'sel-restricted');
   });
-  document.getElementById('f-capacity').value=d.capacity||''; updateCapPreview();
+  document.getElementById('f-wq-time').value=d.wqTime||'';
   dutyList=d.duty||[]; renderTags();
   document.getElementById('f-wq-time').value=d.wqTime||'';
   document.getElementById('f-m-cl').value=d.mainCl??'';
@@ -466,6 +529,9 @@ function loadSaved() {
   document.getElementById('f-ticker').value=d.ticker||'';
   if(d.slides&&d.slides.length){slideImages=d.slides; renderSlides();}
   if(d.updatedAt) document.getElementById('save-status').textContent='Last saved: '+d.updatedAt;
+  // Restore zip code
+  const savedZip = localStorage.getItem('frraZip') || '22033';
+  if (savedZip) document.getElementById('f-zipcode').value = savedZip;
 }
 
 function logout() {
