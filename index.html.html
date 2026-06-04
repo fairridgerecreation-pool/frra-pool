@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRRA Pool Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#011628; font-family:'DM Sans',sans-serif; color:#E8F4FD; }
+
+/* ── Layout: left = slideshow, right = data panel ── */
+#app {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  grid-template-rows: 72px 1fr 44px;
+  height: 100vh;
+  gap: 0;
+}
+
+/* ─ Header ─ */
+header {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #023E8A 0%, #0077B6 100%);
+  border-bottom: 3px solid #48CAE4;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  position: relative; overflow: hidden;
+}
+header::before {
+  content:''; position:absolute; inset:0;
+  background: repeating-linear-gradient(90deg, transparent 0, transparent 60px, rgba(255,255,255,0.02) 60px, rgba(255,255,255,0.02) 62px);
+}
+.hdr-left { display:flex; align-items:center; gap:14px; z-index:1; }
+.logo { width:52px; height:52px; border-radius:50%; background:#00B4D8; border:2.5px solid #48CAE4; display:flex; align-items:center; justify-content:center; font-size:26px; box-shadow:0 0 18px rgba(72,202,228,0.5); animation:logopulse 3s ease-in-out infinite; }
+@keyframes logopulse { 0%,100%{box-shadow:0 0 18px rgba(72,202,228,0.4)} 50%{box-shadow:0 0 32px rgba(72,202,228,0.8)} }
+.hdr-titles h1 { font-family:'Bebas Neue'; font-size:32px; letter-spacing:3px; color:#fff; text-shadow:0 0 20px rgba(72,202,228,0.5); line-height:1; }
+.hdr-titles p  { font-size:11px; color:#90E0EF; letter-spacing:2px; text-transform:uppercase; }
+.hdr-right { display:flex; align-items:center; gap:20px; z-index:1; }
+#d-status { padding:5px 18px; border-radius:20px; font-size:14px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; background:#06D6A0; color:#012a1a; box-shadow:0 0 16px rgba(6,214,160,0.5); animation:statusblink 2.5s ease-in-out infinite; }
+#d-status.closed { background:#EF476F; color:#fff; box-shadow:0 0 16px rgba(239,71,111,0.5); }
+#d-status.restricted { background:#FFD166; color:#012a1a; box-shadow:0 0 16px rgba(255,209,102,0.5); }
+@keyframes statusblink { 0%,100%{opacity:1} 50%{opacity:0.82} }
+.hdr-clock { text-align:right; }
+#d-time { font-family:'JetBrains Mono'; font-size:26px; font-weight:700; color:#FFD166; letter-spacing:2px; }
+#d-date { font-size:11px; color:#90E0EF; }
+
+/* ─ Slideshow ─ */
+#slideshow-pane {
+  position:relative; overflow:hidden;
+  background:#000;
+}
+.slide {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity 0.9s ease;
+}
+.slide.active { opacity:1; }
+.slide img { width:100%; height:100%; object-fit:contain; background:#001828; }
+.slide-placeholder {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:18px; color:#48CAE4; text-align:center; padding:40px;
+  width:100%;
+}
+.slide-placeholder h2 { font-family:'Bebas Neue'; font-size:48px; letter-spacing:4px; color:#00B4D8; }
+.slide-placeholder p { font-size:16px; color:#90E0EF; max-width:500px; line-height:1.6; }
+/* Slide dots */
+#slide-dots {
+  position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+  display:flex; gap:8px; z-index:10;
+}
+.dot-btn { width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,0.3); border:none; cursor:pointer; transition:all 0.3s; }
+.dot-btn.on { background:#48CAE4; box-shadow:0 0 8px #48CAE4; width:24px; border-radius:5px; }
+
+/* ─ Data panel ─ */
+#data-panel {
+  background: linear-gradient(180deg, #012a4a 0%, #011628 100%);
+  border-left: 2px solid rgba(72,202,228,0.2);
+  overflow-y: auto;
+  padding: 14px 14px 10px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+#data-panel::-webkit-scrollbar { width:4px; }
+#data-panel::-webkit-scrollbar-thumb { background:#0077B6; border-radius:2px; }
+
+.panel-card {
+  background: rgba(0,119,182,0.14);
+  border: 1px solid rgba(72,202,228,0.22);
+  border-radius: 12px;
+  padding: 12px 14px;
+  position:relative; overflow:hidden;
+}
+.panel-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2.5px; background:linear-gradient(90deg,#00B4D8,#48CAE4); border-radius:12px 12px 0 0; }
+.pc-title { font-size:10px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#48CAE4; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.pc-dot { width:7px; height:7px; border-radius:50%; background:#48CAE4; box-shadow:0 0 6px #48CAE4; animation:blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Capacity */
+.cap-row { display:flex; align-items:center; gap:10px; }
+.cap-track { flex:1; height:12px; border-radius:6px; background:rgba(255,255,255,0.07); border:1px solid rgba(72,202,228,0.2); overflow:hidden; }
+.cap-fill { height:100%; border-radius:6px; background:linear-gradient(90deg,#06D6A0,#00B4D8); transition:width 1.2s ease; position:relative; overflow:hidden; }
+.cap-fill::after { content:''; position:absolute; inset:0; background:repeating-linear-gradient(90deg,transparent 0,rgba(255,255,255,0.15) 8px,transparent 16px); animation:shimmer 2s linear infinite; }
+@keyframes shimmer { from{transform:translateX(-16px)} to{transform:translateX(0)} }
+.cap-nums { font-family:'JetBrains Mono'; font-size:14px; font-weight:700; white-space:nowrap; }
+.cap-pct  { font-size:11px; color:#90E0EF; }
+
+/* WQ table */
+.wq-cols { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.wq-col-title { font-size:10px; font-weight:700; color:#90E0EF; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.wq-row { display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid rgba(72,202,228,0.07); }
+.wq-row:last-child { border:none; }
+.wq-label { font-size:11px; color:#90E0EF; }
+.wq-val { font-family:'JetBrains Mono'; font-size:13px; font-weight:700; padding:1px 7px; border-radius:5px; }
+.ok   { color:#06D6A0; background:rgba(6,214,160,0.12); }
+.warn { color:#FFD166; background:rgba(255,209,102,0.12); }
+.bad  { color:#EF476F; background:rgba(239,71,111,0.12); }
+.neutral { color:#E8F4FD; background:rgba(255,255,255,0.07); }
+.wq-time { font-size:10px; color:#5A8AA0; margin-top:6px; text-align:right; font-style:italic; }
+
+/* Duty */
+.duty-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.duty-chip { padding:4px 12px; border-radius:14px; background:rgba(0,180,216,0.18); border:1px solid rgba(0,180,216,0.4); font-size:12px; font-weight:600; }
+.duty-chip::before { content:'👤 '; }
+
+/* Weather */
+.wx-row { display:flex; align-items:center; gap:14px; }
+.wx-icon { font-size:42px; line-height:1; }
+.wx-temp { font-family:'Bebas Neue'; font-size:40px; color:#FFD166; line-height:1; letter-spacing:2px; }
+.wx-desc { font-size:12px; color:#90E0EF; }
+.wx-sub  { font-size:11px; color:#5A8AA0; margin-top:2px; }
+
+/* Notice */
+.notice-text { font-size:13px; line-height:1.5; color:#E8F4FD; }
+.notice-none { font-size:12px; color:#5A8AA0; font-style:italic; }
+.notice-alert { background:rgba(239,71,111,0.1); border:1px solid rgba(239,71,111,0.3); border-radius:8px; padding:8px 10px; font-size:13px; line-height:1.5; }
+
+/* Acceptable levels */
+.al-table { width:100%; border-collapse:collapse; font-size:11px; }
+.al-table th { color:#48CAE4; text-transform:uppercase; letter-spacing:1px; padding:2px 4px; border-bottom:1px solid rgba(72,202,228,0.2); text-align:left; font-size:10px; }
+.al-table td { padding:4px 4px; border-bottom:1px solid rgba(72,202,228,0.06); font-family:'JetBrains Mono'; font-size:11px; }
+
+/* ─ Footer ticker ─ */
+footer {
+  grid-column: 1 / -1;
+  background: rgba(0,0,0,0.5);
+  border-top: 1px solid rgba(72,202,228,0.2);
+  display: flex; align-items:center;
+  padding: 0 16px; gap:16px;
+  overflow:hidden;
+}
+.ticker-label { font-size:10px; font-weight:700; letter-spacing:2px; color:#48CAE4; text-transform:uppercase; white-space:nowrap; background:rgba(0,119,182,0.4); padding:3px 10px; border-radius:10px; }
+.ticker-wrap { flex:1; overflow:hidden; }
+#d-ticker { font-size:13px; color:#90E0EF; white-space:nowrap; animation:ticker 25s linear infinite; display:inline-block; }
+@keyframes ticker { from{transform:translateX(100vw)} to{transform:translateX(-100%)} }
+.footer-right { font-size:10px; color:#5A8AA0; white-space:nowrap; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="hdr-left">
+      <div class="logo">🏊</div>
+      <div class="hdr-titles">
+        <h1>FRRA Pool Dashboard</h1>
+        <p>Fair Ridge Recreation Association · 2026 Season</p>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div id="d-status">Open</div>
+      <div class="hdr-clock">
+        <div id="d-time">12:00 PM</div>
+        <div id="d-date">Loading...</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SLIDESHOW -->
+  <div id="slideshow-pane">
+    <div class="slide active" id="slide-welcome">
+      <div class="slide-placeholder">
+        <div style="font-size:80px">🏊‍♂️</div>
+        <h2>Welcome to FRRA Pool</h2>
+        <p>Fair Ridge Recreation Association<br/>2026 Season</p>
+        <p style="font-size:13px;margin-top:8px;color:#5A8AA0">Upload your slideshow slides via the staff panel to display them here.</p>
+      </div>
+    </div>
+  </div>
+  <div id="slide-dots"></div>
+
+  <!-- DATA PANEL -->
+  <div id="data-panel">
+
+
+
+    <!-- On duty -->
+    <div class="panel-card">
+      <div class="pc-title"><span class="pc-dot"></span>On Duty Today</div>
+      <div class="duty-chips" id="d-duty">
+        <span style="font-size:12px;color:#5A8AA0;font-style:italic">Awaiting update...</span>
+      </div>
+    </div>
+
+    <!-- Water quality -->
+    <div class="panel-card">
+      <div class="pc-title"><span class="pc-dot"></span>Water Quality Test Results</div>
+      <div class="wq-cols">
+        <div>
+          <div class="wq-col-title">Main Pool</div>
+          <div class="wq-row"><span class="wq-label">Chlorine</span><span class="wq-val neutral" id="d-m-cl">--</span></div>
+          <div class="wq-row"><span class="wq-label">pH</span><span class="wq-val neutral" id="d-m-ph">--</span></div>
+          <div class="wq-row"><span class="wq-label">Temp</span><span class="wq-val neutral" id="d-m-tmp">--</span></div>
+        </div>
+        <div>
+          <div class="wq-col-title">Wading Pool</div>
+          <div class="wq-row"><span class="wq-label">Chlorine</span><span class="wq-val neutral" id="d-w-cl">--</span></div>
+          <div class="wq-row"><span class="wq-label">pH</span><span class="wq-val neutral" id="d-w-ph">--</span></div>
+          <div class="wq-row"><span class="wq-label">Temp</span><span class="wq-val neutral" id="d-w-tmp">--</span></div>
+        </div>
+      </div>
+      <div class="wq-time" id="d-wq-time">Awaiting today's reading...</div>
+    </div>
+
+    <!-- Acceptable levels -->
+    <div class="panel-card">
+      <div class="pc-title"><span class="pc-dot"></span>Acceptable Levels</div>
+      <table class="al-table">
+        <thead><tr><th>Parameter</th><th>Min</th><th>Max</th></tr></thead>
+        <tbody>
+          <tr><td>Chlorine</td><td>1.0 ppm</td><td>10.0 ppm</td></tr>
+          <tr><td>pH</td><td>7.2</td><td>7.8</td></tr>
+          <tr><td>Water Temp</td><td>N/A</td><td>104 °F</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Weather -->
+    <div class="panel-card">
+      <div class="pc-title"><span class="pc-dot"></span>Weather</div>
+      <div class="wx-row">
+        <div class="wx-icon" id="d-wx-icon">☀️</div>
+        <div>
+          <div class="wx-temp" id="d-wx-temp">--°F</div>
+          <div class="wx-desc" id="d-wx-desc">No data yet</div>
+          <div class="wx-sub" id="d-wx-sub"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notice -->
+    <div class="panel-card">
+      <div class="pc-title"><span class="pc-dot"></span>Pool Notice</div>
+      <div id="d-notice" class="notice-none">No notices today.</div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="ticker-label">📢 FRRA</span>
+    <div class="ticker-wrap"><span id="d-ticker">Welcome to the FRRA Pool! Please follow all posted rules and lifeguard instructions. Have a safe and fun swim!</span></div>
+    <span class="footer-right" id="d-updated">Not yet updated</span>
+  </footer>
+
+</div>
+
+<script>
+// ── Clock ──
+function tick() {
+  const now = new Date();
+  document.getElementById('d-time').textContent = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+  document.getElementById('d-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+tick(); setInterval(tick,1000);
+
+// ── Slideshow ──
+let slides=[], curSlide=0, slideTimer=null;
+const pane = document.getElementById('slideshow-pane');
+
+function buildSlideshow(images) {
+  // Remove old slides except welcome
+  document.querySelectorAll('.slide:not(#slide-welcome)').forEach(s=>s.remove());
+  document.getElementById('slide-dots').innerHTML='';
+  if (!images || images.length===0) {
+    document.getElementById('slide-welcome').classList.add('active');
+    return;
+  }
+  document.getElementById('slide-welcome').classList.remove('active');
+  slides = images;
+  slides.forEach((src,i) => {
+    const div = document.createElement('div');
+    div.className='slide' + (i===0?' active':'');
+    div.dataset.idx=i;
+    const img=document.createElement('img');
+    img.src=src; img.alt='Slide '+(i+1);
+    div.appendChild(img);
+    pane.appendChild(div);
+  });
+  // Dots
+  const dotsEl=document.getElementById('slide-dots');
+  slides.forEach((_,i)=>{
+    const b=document.createElement('button');
+    b.className='dot-btn'+(i===0?' on':'');
+    b.onclick=()=>goSlide(i);
+    dotsEl.appendChild(b);
+  });
+  curSlide=0;
+  clearInterval(slideTimer);
+  slideTimer=setInterval(nextSlide, 6000);
+}
+
+function goSlide(n) {
+  document.querySelectorAll('.slide').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.dot-btn').forEach(d=>d.classList.remove('on'));
+  const allSlides=document.querySelectorAll('.slide');
+  if (allSlides[n]) allSlides[n].classList.add('active');
+  const allDots=document.querySelectorAll('.dot-btn');
+  if (allDots[n]) allDots[n].classList.add('on');
+  curSlide=n;
+}
+function nextSlide() {
+  const all=document.querySelectorAll('.slide');
+  goSlide((curSlide+1)%all.length);
+}
+
+// ── Color helpers ──
+const clC = v => v>=1&&v<=10?'ok':v<1?'bad':'warn';
+const phC = v => v>=7.2&&v<=7.8?'ok':(v<6.8||v>8.2)?'bad':'warn';
+const wxI = {'Sunny':'☀️','Partly Cloudy':'⛅','Cloudy':'☁️','Rainy':'🌧️','Thunderstorm':'⛈️','Windy':'💨','Hot':'🔥','Clear':'🌙'};
+
+// ── Render ──
+function render(d) {
+  if (!d) return;
+  // Status
+  const st=document.getElementById('d-status');
+  st.textContent=d.status||'Open';
+  st.className=d.status==='Closed'?'closed':d.status==='Restricted'?'restricted':'';
+  // Capacity
+  const pct=Math.min(100,Math.round((d.capacity||0)/248*100));
+  const fill=document.getElementById('d-cap-fill');
+  fill.style.width=pct+'%';
+  fill.style.background=pct>=90?'linear-gradient(90deg,#EF476F,#ff8fa3)':pct>=70?'linear-gradient(90deg,#FFD166,#ffe599)':'linear-gradient(90deg,#06D6A0,#00B4D8)';
+  document.getElementById('d-cap-nums').textContent=(d.capacity||0)+' / 248';
+  document.getElementById('d-cap-pct').textContent=pct+'% full';
+  // Duty
+  const dutyEl=document.getElementById('d-duty');
+  dutyEl.innerHTML=(d.duty&&d.duty.length)?d.duty.map(n=>`<span class="duty-chip">${n}</span>`).join(''):'<span style="font-size:12px;color:#5A8AA0;font-style:italic">Not entered</span>';
+  // WQ
+  const set=(id,v,unit,colorFn)=>{
+    const el=document.getElementById(id);
+    if(v!=null){el.textContent=v+unit;if(colorFn)el.className='wq-val '+colorFn(v);else el.className='wq-val neutral';}
+  };
+  set('d-m-cl',d.mainCl,' ppm',clC);
+  set('d-m-ph',d.mainPh,'',phC);
+  set('d-m-tmp',d.mainTemp,' °F',null);
+  set('d-w-cl',d.wadCl,' ppm',clC);
+  set('d-w-ph',d.wadPh,'',phC);
+  set('d-w-tmp',d.wadTemp,' °F',null);
+  if(d.wqTime){
+    const [h,m]=d.wqTime.split(':');
+    const t=new Date();t.setHours(h,m);
+    document.getElementById('d-wq-time').textContent='Recorded: '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+  }
+  // Weather
+  if(d.wxTemp) document.getElementById('d-wx-temp').textContent=d.wxTemp+'°F';
+  document.getElementById('d-wx-icon').textContent=wxI[d.wxCond]||'☀️';
+  document.getElementById('d-wx-desc').textContent=d.wxCond||'--';
+  document.getElementById('d-wx-sub').textContent=d.wxFeels?'Feels like '+d.wxFeels+'°F'+(d.wxWind?' · Wind '+d.wxWind+' mph':''):'';
+  // Notice
+  const nEl=document.getElementById('d-notice');
+  if(d.notice){nEl.className='notice-alert';nEl.textContent='⚠️ '+d.notice;}
+  else{nEl.className='notice-none';nEl.textContent='No notices today.';}
+  // Ticker
+  if(d.ticker) document.getElementById('d-ticker').textContent=d.ticker;
+  // Slideshow
+  if(d.slides&&d.slides.length) buildSlideshow(d.slides);
+  // Updated
+  if(d.updatedAt) document.getElementById('d-updated').textContent='Updated: '+d.updatedAt;
+}
+
+// ── Load & auto-refresh ──
+function load() {
+  try { const d=localStorage.getItem('frraData'); if(d) render(JSON.parse(d)); } catch(e){}
+}
+load();
+setInterval(load, 10000); // re-check every 10s
+</script>
+</body>
+</html>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRRA Staff Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --deep:#023E8A; --mid:#0077B6; --bright:#00B4D8; --aqua:#48CAE4;
+  --teal:#06D6A0; --coral:#EF476F; --sand:#FFD166; --foam:#CAF0F8;
+  --bg:#010F1E; --card:rgba(0,90,140,0.15); --border:rgba(72,202,228,0.22);
+  --text:#E8F4FD; --muted:#5A8AA0;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* Header */
+.site-header {
+  background:linear-gradient(135deg,#023E8A,#0077B6);
+  border-bottom:3px solid var(--aqua);
+  padding:0 32px; height:64px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+}
+.site-header h1 { font-family:'Bebas Neue'; font-size:26px; letter-spacing:3px; color:#fff; display:flex; align-items:center; gap:10px; }
+.hdr-actions { display:flex; gap:10px; align-items:center; }
+.btn { padding:8px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; border:none; transition:all 0.2s; letter-spacing:0.5px; font-family:'DM Sans'; }
+.btn-primary { background:linear-gradient(135deg,var(--mid),var(--bright)); color:#fff; box-shadow:0 4px 16px rgba(0,180,216,0.3); }
+.btn-primary:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,180,216,0.5); }
+.btn-ghost  { background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--aqua); }
+.btn-ghost:hover { background:rgba(72,202,228,0.12); }
+.btn-danger { background:rgba(239,71,111,0.15); border:1px solid rgba(239,71,111,0.4); color:var(--coral); }
+.btn-danger:hover { background:var(--coral); color:#fff; }
+.btn-success { background:var(--teal); color:#011; }
+.btn-success:hover { filter:brightness(1.1); }
+
+/* Layout */
+.main { max-width:900px; margin:0 auto; padding:28px 20px 80px; }
+
+/* Section cards */
+.section {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:16px; margin-bottom:16px; overflow:hidden;
+}
+.section-header {
+  padding:16px 20px; display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--border); cursor:pointer;
+  background:rgba(0,119,182,0.1);
+  user-select:none;
+}
+.section-header h2 { font-size:14px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--aqua); display:flex; align-items:center; gap:10px; }
+.section-header h2 .icon { font-size:20px; }
+.section-body { padding:20px; display:none; }
+.section.open .section-body { display:block; }
+.chevron { color:var(--aqua); transition:transform 0.3s; font-size:14px; }
+.section.open .chevron { transform:rotate(180deg); }
+
+/* Form elements */
+.form-grid { display:grid; gap:14px; }
+.form-grid.cols2 { grid-template-columns:1fr 1fr; }
+.form-grid.cols3 { grid-template-columns:1fr 1fr 1fr; }
+@media(max-width:640px) { .form-grid.cols2,.form-grid.cols3 { grid-template-columns:1fr; } }
+
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+.field input, .field select, .field textarea {
+  padding:11px 14px; border-radius:10px;
+  background:rgba(0,0,0,0.35); border:1.5px solid var(--border);
+  color:var(--text); font-size:14px; font-family:'DM Sans';
+  outline:none; transition:all 0.2s;
+}
+.field input:focus,.field select:focus,.field textarea:focus { border-color:var(--bright); box-shadow:0 0 0 3px rgba(0,180,216,0.15); background:rgba(0,180,216,0.05); }
+.field textarea { min-height:75px; resize:vertical; line-height:1.5; }
+.field small { font-size:11px; color:var(--muted); }
+select option { background:#011628; }
+
+/* Status buttons */
+.status-group { display:flex; gap:10px; flex-wrap:wrap; }
+.status-opt {
+  padding:10px 20px; border-radius:20px; cursor:pointer;
+  border:2px solid var(--border); font-size:14px; font-weight:600; font-family:'DM Sans';
+  background:transparent; color:var(--muted); transition:all 0.2s;
+}
+.status-opt:hover { border-color:var(--aqua); color:var(--aqua); }
+.status-opt.sel-open   { background:var(--teal); border-color:var(--teal); color:#011; }
+.status-opt.sel-closed { background:var(--coral); border-color:var(--coral); color:#fff; }
+.status-opt.sel-restricted { background:var(--sand); border-color:var(--sand); color:#011; }
+
+/* Duty tags */
+.tag-row { display:flex; gap:8px; align-items:center; }
+.tag-row input { flex:1; }
+.tag-list { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+.tag { padding:6px 13px; border-radius:14px; background:rgba(0,180,216,0.15); border:1px solid rgba(0,180,216,0.35); font-size:13px; font-weight:600; display:flex; align-items:center; gap:7px; }
+.tag-x { cursor:pointer; color:var(--coral); font-size:16px; line-height:1; }
+
+/* Slide upload */
+.upload-zone {
+  border:2px dashed rgba(72,202,228,0.35); border-radius:12px;
+  padding:32px; text-align:center; cursor:pointer;
+  transition:all 0.2s; background:rgba(0,0,0,0.2);
+}
+.upload-zone:hover, .upload-zone.drag { border-color:var(--bright); background:rgba(0,180,216,0.06); }
+.upload-zone p { color:var(--muted); font-size:14px; margin-top:8px; }
+.upload-zone .icon { font-size:40px; }
+.slides-preview { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-top:14px; }
+.slide-thumb { position:relative; border-radius:8px; overflow:hidden; border:2px solid var(--border); aspect-ratio:16/9; cursor:grab; }
+.slide-thumb img { width:100%; height:100%; object-fit:cover; }
+.slide-thumb .num { position:absolute; top:4px; left:4px; background:rgba(0,0,0,0.7); color:#fff; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; }
+.slide-thumb .del { position:absolute; top:4px; right:4px; background:rgba(239,71,111,0.8); color:#fff; border:none; border-radius:4px; width:22px; height:22px; cursor:pointer; font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center; }
+.slide-thumb .del:hover { background:var(--coral); }
+
+/* Weather icons */
+.wx-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; }
+.wx-opt {
+  padding:10px 8px; border-radius:10px; text-align:center; cursor:pointer;
+  border:2px solid var(--border); background:rgba(0,0,0,0.2); transition:all 0.2s;
+}
+.wx-opt:hover { border-color:var(--aqua); }
+.wx-opt.sel { border-color:var(--bright); background:rgba(0,180,216,0.12); }
+.wx-opt .wi { font-size:26px; display:block; margin-bottom:4px; }
+.wx-opt span { font-size:11px; color:var(--muted); }
+
+/* Divider */
+.divider { height:1px; background:var(--border); margin:16px 0; }
+.subsection-title { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--aqua); margin-bottom:12px; padding:4px 0; border-bottom:1px solid rgba(72,202,228,0.1); }
+
+/* Save bar */
+.save-bar {
+  position:fixed; bottom:0; left:0; right:0;
+  background:rgba(1,14,28,0.95); border-top:2px solid var(--border);
+  backdrop-filter:blur(12px);
+  padding:14px 24px; display:flex; align-items:center; justify-content:space-between; z-index:200;
+}
+.save-bar p { font-size:13px; color:var(--muted); }
+#save-status { font-size:13px; font-weight:600; color:var(--teal); min-width:160px; text-align:right; }
+
+/* Toast */
+.toast {
+  position:fixed; top:80px; right:24px; z-index:300;
+  background:var(--teal); color:#011; padding:13px 22px; border-radius:12px;
+  font-weight:700; font-size:14px;
+  transform:translateX(120%); opacity:0;
+  transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  pointer-events:none;
+}
+.toast.show { transform:translateX(0); opacity:1; }
+
+/* Capacity preview */
+.cap-preview { margin-top:10px; }
+.cap-track { height:14px; border-radius:7px; background:rgba(255,255,255,0.07); border:1px solid var(--border); overflow:hidden; }
+.cap-fill { height:100%; border-radius:7px; background:linear-gradient(90deg,var(--teal),var(--bright)); transition:width 0.5s ease; }
+.cap-info { display:flex; justify-content:space-between; margin-top:5px; font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Auth guard -->
+<script>if(sessionStorage.getItem('frraAuth')!=='1'){window.location.href='login.html';}</script>
+
+<header class="site-header">
+  <h1><span>🏊</span> FRRA Staff Panel</h1>
+  <div class="hdr-actions">
+    <a href="index.html" target="_blank"><button class="btn btn-ghost">📺 Preview Dashboard</button></a>
+    <button class="btn btn-primary" onclick="saveAll()">💾 Save & Publish</button>
+    <button class="btn btn-danger" onclick="logout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- ── Pool Status ── -->
+  <div class="section open" id="sec-status">
+    <div class="section-header" onclick="toggle('sec-status')">
+      <h2><span class="icon">🚦</span> Pool Status</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label>Pool Status</label>
+        <div class="status-group" id="statusGroup">
+          <button class="status-opt sel-open" data-v="Open"       onclick="setStatus(this)">✅ Open</button>
+          <button class="status-opt"           data-v="Closed"     onclick="setStatus(this)">🚫 Closed</button>
+          <button class="status-opt"           data-v="Restricted" onclick="setStatus(this)">⚠️ Restricted</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Staff on Duty ── -->
+  <div class="section open" id="sec-duty">
+    <div class="section-header" onclick="toggle('sec-duty')">
+      <h2><span class="icon">👤</span> Staff on Duty</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label>Add Lifeguard / Staff Name</label>
+        <div class="tag-row">
+          <input type="text" id="duty-input" placeholder="Type name and press Enter or click Add" onkeydown="if(event.key==='Enter')addDuty()"/>
+          <button class="btn btn-primary" onclick="addDuty()">+ Add</button>
+        </div>
+        <div class="tag-list" id="duty-tags"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Water Quality ── -->
+  <div class="section open" id="sec-wq">
+    <div class="section-header" onclick="toggle('sec-wq')">
+      <h2><span class="icon">🧪</span> Water Quality Test Results</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="field" style="max-width:220px;margin-bottom:18px">
+        <label>Time of Reading</label>
+        <input type="time" id="f-wq-time"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div class="subsection-title">🏊 Main Pool</div>
+          <div class="form-grid cols3">
+            <div class="field"><label>Chlorine (ppm)</label><input type="number" id="f-m-cl" placeholder="e.g. 6" step="0.1" min="0"/></div>
+            <div class="field"><label>pH</label><input type="number" id="f-m-ph" placeholder="e.g. 7.4" step="0.1" min="0"/></div>
+            <div class="field"><label>Temp °F</label><input type="number" id="f-m-tmp" placeholder="e.g. 73" min="0"/></div>
+          </div>
+        </div>
+        <div>
+          <div class="subsection-title">🛁 Wading Pool</div>
+          <div class="form-grid cols3">
+            <div class="field"><label>Chlorine (ppm)</label><input type="number" id="f-w-cl" placeholder="e.g. 5" step="0.1" min="0"/></div>
+            <div class="field"><label>pH</label><input type="number" id="f-w-ph" placeholder="e.g. 7.6" step="0.1" min="0"/></div>
+            <div class="field"><label>Temp °F</label><input type="number" id="f-w-tmp" placeholder="e.g. 72" min="0"/></div>
+          </div>
+        </div>
+      </div>
+      <!-- Acceptable levels reminder -->
+      <div style="background:rgba(72,202,228,0.07);border:1px solid rgba(72,202,228,0.18);border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:#90E0EF;display:flex;gap:24px;flex-wrap:wrap">
+        <span>✅ <strong>Chlorine:</strong> 1.0 – 10.0 ppm</span>
+        <span>✅ <strong>pH:</strong> 7.2 – 7.8</span>
+        <span>✅ <strong>Water Temp:</strong> max 104°F</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Weather ── -->
+  <div class="section" id="sec-wx">
+    <div class="section-header" onclick="toggle('sec-wx')">
+      <h2><span class="icon">🌤️</span> Weather Conditions</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="form-grid cols3" style="margin-bottom:16px">
+        <div class="field"><label>Air Temp (°F)</label><input type="number" id="f-wx-tmp" placeholder="e.g. 85"/></div>
+        <div class="field"><label>Feels Like (°F)</label><input type="number" id="f-wx-feel" placeholder="e.g. 90"/></div>
+        <div class="field"><label>Wind Speed (mph)</label><input type="number" id="f-wx-wind" placeholder="e.g. 8"/></div>
+      </div>
+      <div class="field">
+        <label>Sky Condition</label>
+        <div class="wx-grid" id="wxGrid">
+          <div class="wx-opt sel" data-v="Sunny"         onclick="setWx(this)"><span class="wi">☀️</span><span>Sunny</span></div>
+          <div class="wx-opt"    data-v="Partly Cloudy"  onclick="setWx(this)"><span class="wi">⛅</span><span>Partly Cloudy</span></div>
+          <div class="wx-opt"    data-v="Cloudy"         onclick="setWx(this)"><span class="wi">☁️</span><span>Cloudy</span></div>
+          <div class="wx-opt"    data-v="Rainy"          onclick="setWx(this)"><span class="wi">🌧️</span><span>Rainy</span></div>
+          <div class="wx-opt"    data-v="Thunderstorm"   onclick="setWx(this)"><span class="wi">⛈️</span><span>Thunder</span></div>
+          <div class="wx-opt"    data-v="Windy"          onclick="setWx(this)"><span class="wi">💨</span><span>Windy</span></div>
+          <div class="wx-opt"    data-v="Hot"            onclick="setWx(this)"><span class="wi">🔥</span><span>Hot</span></div>
+          <div class="wx-opt"    data-v="Clear"          onclick="setWx(this)"><span class="wi">🌙</span><span>Clear Night</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slideshow ── -->
+  <div class="section" id="sec-slides">
+    <div class="section-header" onclick="toggle('sec-slides')">
+      <h2><span class="icon">🖼️</span> Slideshow Images</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Upload images (JPG/PNG) to display in the TV slideshow. Drag to reorder. Recommended: export your PowerPoint slides as images first.</p>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('slideInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <div class="icon">📁</div>
+        <p><strong>Click to upload</strong> or drag &amp; drop images here</p>
+        <p style="font-size:12px;margin-top:4px">PNG, JPG, WEBP — multiple files supported</p>
+      </div>
+      <input type="file" id="slideInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)"/>
+      <div class="slides-preview" id="slidesPreview"></div>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="clearSlides()">🗑️ Clear All Slides</button>
+        <span style="font-size:12px;color:var(--muted);align-self:center" id="slide-count">0 slides uploaded</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Notice / Ticker ── -->
+  <div class="section" id="sec-notice">
+    <div class="section-header" onclick="toggle('sec-notice')">
+      <h2><span class="icon">📢</span> Pool Notice &amp; Ticker</h2>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>Pool Notice / Alert (shown on dashboard)</label>
+          <textarea id="f-notice" placeholder="e.g. Pool will close early at 6 PM for maintenance. — Leave blank for no notice."></textarea>
+        </div>
+        <div class="field">
+          <label>Scrolling Ticker Message (bottom of TV screen)</label>
+          <input type="text" id="f-ticker" placeholder="e.g. Welcome to FRRA Pool! Please follow all rules."/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Save bar -->
+<div class="save-bar">
+  <p>Changes are saved locally and published to the TV dashboard instantly.</p>
+  <div style="display:flex;gap:12px;align-items:center">
+    <span id="save-status"></span>
+    <button class="btn btn-success" onclick="saveAll()">💾 Save &amp; Publish</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ Published to Dashboard!</div>
+
+<script>
+// ── Auth guard ──
+if (sessionStorage.getItem('frraAuth')!=='1') window.location.href='login.html';
+
+// ── State ──
+let dutyList=[], wxCond='Sunny', poolStatus='Open', slideImages=[];
+
+// ── Section toggle ──
+function toggle(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// ── Status ──
+function setStatus(btn) {
+  document.querySelectorAll('#statusGroup .status-opt').forEach(b=>b.className='status-opt');
+  const v=btn.dataset.v;
+  btn.classList.add(v==='Open'?'sel-open':v==='Closed'?'sel-closed':'sel-restricted');
+  poolStatus=v;
+}
+
+// ── Weather ──
+function setWx(el) {
+  document.querySelectorAll('#wxGrid .wx-opt').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  wxCond=el.dataset.v;
+}
+
+// ── Capacity preview ──
+function updateCapPreview() {
+  const v=parseInt(document.getElementById('f-capacity').value)||0;
+  const pct=Math.min(100,Math.round(v/248*100));
+  const fill=document.getElementById('cap-fill-preview');
+  fill.style.width=pct+'%';
+  fill.style.background=pct>=90?'linear-gradient(90deg,#EF476F,#ff8fa3)':pct>=70?'linear-gradient(90deg,#FFD166,#ffe599)':'linear-gradient(90deg,#06D6A0,#00B4D8)';
+  document.getElementById('cap-preview-txt').textContent=v+' / 248';
+  document.getElementById('cap-pct-txt').textContent=pct+'%';
+}
+
+// ── Duty tags ──
+function addDuty() {
+  const inp=document.getElementById('duty-input');
+  const n=inp.value.trim();
+  if(!n||dutyList.includes(n)){inp.value='';return;}
+  dutyList.push(n); inp.value=''; renderTags();
+}
+function removeDuty(n) { dutyList=dutyList.filter(x=>x!==n); renderTags(); }
+function renderTags() {
+  document.getElementById('duty-tags').innerHTML=
+    dutyList.map(n=>`<span class="tag">${n}<span class="tag-x" onclick="removeDuty('${n}')">×</span></span>`).join('');
+}
+
+// ── Slides ──
+function handleFiles(files) {
+  Array.from(files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{ slideImages.push(e.target.result); renderSlides(); };
+    r.readAsDataURL(f);
+  });
+  document.getElementById('slideInput').value='';
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+}
+function renderSlides() {
+  const el=document.getElementById('slidesPreview');
+  el.innerHTML=slideImages.map((src,i)=>`
+    <div class="slide-thumb" draggable="true" data-i="${i}">
+      <img src="${src}" alt="Slide ${i+1}"/>
+      <span class="num">${i+1}</span>
+      <button class="del" onclick="delSlide(${i})">×</button>
+    </div>`).join('');
+  document.getElementById('slide-count').textContent=slideImages.length+' slide'+(slideImages.length!==1?'s':'')+' uploaded';
+}
+function delSlide(i) { slideImages.splice(i,1); renderSlides(); }
+function clearSlides() { if(confirm('Remove all slides?')){slideImages=[];renderSlides();} }
+
+// ── Save ──
+function saveAll() {
+  const data = {
+    status:    poolStatus,
+    capacity:  parseInt(document.getElementById('f-capacity').value)||0,
+    duty:      [...dutyList],
+    wqTime:    document.getElementById('f-wq-time').value,
+    mainCl:    parseFloat(document.getElementById('f-m-cl').value)||null,
+    mainPh:    parseFloat(document.getElementById('f-m-ph').value)||null,
+    mainTemp:  parseFloat(document.getElementById('f-m-tmp').value)||null,
+    wadCl:     parseFloat(document.getElementById('f-w-cl').value)||null,
+    wadPh:     parseFloat(document.getElementById('f-w-ph').value)||null,
+    wadTemp:   parseFloat(document.getElementById('f-w-tmp').value)||null,
+    wxTemp:    parseInt(document.getElementById('f-wx-tmp').value)||null,
+    wxFeels:   parseInt(document.getElementById('f-wx-feel').value)||null,
+    wxWind:    parseInt(document.getElementById('f-wx-wind').value)||null,
+    wxCond:    wxCond,
+    notice:    document.getElementById('f-notice').value.trim(),
+    ticker:    document.getElementById('f-ticker').value.trim(),
+    slides:    slideImages,
+    updatedAt: new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),
+  };
+  localStorage.setItem('frraData', JSON.stringify(data));
+  const status=document.getElementById('save-status');
+  status.textContent='✅ Published at '+data.updatedAt;
+  const toast=document.getElementById('toast');
+  toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2800);
+}
+
+// ── Load saved ──
+function loadSaved() {
+  const raw=localStorage.getItem('frraData');
+  if(!raw) return;
+  const d=JSON.parse(raw);
+  poolStatus=d.status||'Open';
+  document.querySelectorAll('#statusGroup .status-opt').forEach(b=>{
+    b.className='status-opt';
+    if(b.dataset.v===poolStatus) b.classList.add(poolStatus==='Open'?'sel-open':poolStatus==='Closed'?'sel-closed':'sel-restricted');
+  });
+  document.getElementById('f-capacity').value=d.capacity||''; updateCapPreview();
+  dutyList=d.duty||[]; renderTags();
+  document.getElementById('f-wq-time').value=d.wqTime||'';
+  document.getElementById('f-m-cl').value=d.mainCl??'';
+  document.getElementById('f-m-ph').value=d.mainPh??'';
+  document.getElementById('f-m-tmp').value=d.mainTemp??'';
+  document.getElementById('f-w-cl').value=d.wadCl??'';
+  document.getElementById('f-w-ph').value=d.wadPh??'';
+  document.getElementById('f-w-tmp').value=d.wadTemp??'';
+  document.getElementById('f-wx-tmp').value=d.wxTemp??'';
+  document.getElementById('f-wx-feel').value=d.wxFeels??'';
+  document.getElementById('f-wx-wind').value=d.wxWind??'';
+  wxCond=d.wxCond||'Sunny';
+  document.querySelectorAll('#wxGrid .wx-opt').forEach(b=>{
+    b.classList.remove('sel'); if(b.dataset.v===wxCond) b.classList.add('sel');
+  });
+  document.getElementById('f-notice').value=d.notice||'';
+  document.getElementById('f-ticker').value=d.ticker||'';
+  if(d.slides&&d.slides.length){slideImages=d.slides; renderSlides();}
+  if(d.updatedAt) document.getElementById('save-status').textContent='Last saved: '+d.updatedAt;
+}
+
+function logout() {
+  sessionStorage.removeItem('frraAuth');
+  window.location.href='login.html';
+}
+
+loadSaved();
+</script>
+</body>
+</html>

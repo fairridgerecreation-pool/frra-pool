@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRRA Staff Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'DM Sans',sans-serif;
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg, #011628 0%, #023E8A 60%, #0077B6 100%);
+  position:relative; overflow:hidden;
+}
+/* Animated background bubbles */
+body::before, body::after {
+  content:''; position:fixed; border-radius:50%;
+  background: rgba(72,202,228,0.06);
+  animation: float 8s ease-in-out infinite;
+}
+body::before { width:600px; height:600px; top:-200px; right:-200px; animation-delay:0s; }
+body::after  { width:400px; height:400px; bottom:-150px; left:-150px; animation-delay:-4s; background:rgba(6,214,160,0.05); }
+@keyframes float { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-30px) scale(1.05)} }
+
+/* Waves */
+.wave { position:fixed; bottom:0; left:0; right:0; height:160px; }
+.wave svg { width:100%; height:100%; }
+
+/* Login card */
+.card {
+  background: rgba(1,22,40,0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(72,202,228,0.25);
+  border-radius: 24px;
+  padding: 48px 44px 40px;
+  width: 100%; max-width: 420px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(72,202,228,0.1);
+  position:relative; z-index:10;
+  animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes cardIn { from{opacity:0;transform:translateY(40px) scale(0.95)} to{opacity:1;transform:none} }
+
+.logo-wrap { display:flex; justify-content:center; margin-bottom:28px; }
+.logo-circle {
+  width:80px; height:80px; border-radius:50%;
+  background: linear-gradient(135deg, #0077B6, #00B4D8);
+  border: 3px solid rgba(72,202,228,0.5);
+  display:flex; align-items:center; justify-content:center;
+  font-size:38px;
+  box-shadow: 0 0 30px rgba(72,202,228,0.4), 0 8px 32px rgba(0,0,0,0.3);
+  animation: logopulse 3s ease-in-out infinite;
+}
+@keyframes logopulse { 0%,100%{box-shadow:0 0 24px rgba(72,202,228,0.4),0 8px 32px rgba(0,0,0,0.3)} 50%{box-shadow:0 0 44px rgba(72,202,228,0.7),0 8px 32px rgba(0,0,0,0.3)} }
+
+.card h1 { font-family:'Bebas Neue'; font-size:34px; letter-spacing:3px; color:#fff; text-align:center; line-height:1; }
+.card h2 { font-size:13px; color:#48CAE4; text-align:center; letter-spacing:2px; text-transform:uppercase; margin-top:6px; margin-bottom:32px; }
+
+.field { margin-bottom:20px; }
+.field label { display:block; font-size:12px; font-weight:600; color:#90E0EF; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+.field-wrap { position:relative; }
+.field input {
+  width:100%; padding:14px 18px;
+  background:rgba(255,255,255,0.06); border:1.5px solid rgba(72,202,228,0.25);
+  border-radius:12px; color:#fff; font-size:16px; font-family:'DM Sans';
+  outline:none; transition:all 0.2s;
+  letter-spacing:2px;
+}
+.field input:focus { border-color:#00B4D8; background:rgba(0,180,216,0.08); box-shadow:0 0 0 4px rgba(0,180,216,0.12); }
+.eye-btn {
+  position:absolute; right:14px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:#48CAE4; cursor:pointer; font-size:18px; padding:4px;
+  opacity:0.7; transition:opacity 0.2s;
+}
+.eye-btn:hover { opacity:1; }
+
+.error-msg {
+  background:rgba(239,71,111,0.15); border:1px solid rgba(239,71,111,0.4);
+  border-radius:10px; padding:10px 14px; font-size:13px; color:#EF476F;
+  margin-bottom:18px; display:none; text-align:center;
+}
+.error-msg.show { display:block; animation:shake 0.4s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+.login-btn {
+  width:100%; padding:15px;
+  background:linear-gradient(135deg,#0077B6,#00B4D8);
+  border:none; border-radius:12px; color:#fff;
+  font-size:16px; font-weight:700; font-family:'DM Sans';
+  cursor:pointer; letter-spacing:1px; text-transform:uppercase;
+  transition:all 0.2s;
+  box-shadow:0 6px 24px rgba(0,180,216,0.35);
+}
+.login-btn:hover { transform:translateY(-2px); box-shadow:0 10px 32px rgba(0,180,216,0.5); }
+.login-btn:active { transform:none; }
+
+.footer-note { text-align:center; margin-top:24px; font-size:12px; color:#5A8AA0; }
+.footer-note a { color:#48CAE4; text-decoration:none; }
+.footer-note a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<!-- Waves -->
+<div class="wave">
+  <svg viewBox="0 0 1440 160" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,80 C240,140 480,20 720,80 C960,140 1200,20 1440,80 L1440,160 L0,160 Z" fill="rgba(0,119,182,0.3)"/>
+    <path d="M0,110 C360,60 720,160 1080,100 C1260,70 1380,130 1440,110 L1440,160 L0,160 Z" fill="rgba(0,180,216,0.2)"/>
+    <path d="M0,140 C480,100 960,160 1440,130 L1440,160 L0,160 Z" fill="rgba(6,214,160,0.15)"/>
+  </svg>
+</div>
+
+<div class="card">
+  <div class="logo-wrap"><div class="logo-circle">🏊</div></div>
+  <h1>FRRA Pool</h1>
+  <h2>Staff Portal</h2>
+
+  <div class="error-msg" id="errMsg">❌ Incorrect password. Please try again.</div>
+
+  <div class="field">
+    <label>Staff Password</label>
+    <div class="field-wrap">
+      <input type="password" id="pwInput" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <button class="eye-btn" id="eyeBtn" onclick="togglePw()" title="Show/hide">👁</button>
+    </div>
+  </div>
+
+  <button class="login-btn" onclick="doLogin()">🔓 Sign In to Staff Panel</button>
+
+  <div class="footer-note">
+    <a href="index.html">← View TV Dashboard</a>
+  </div>
+</div>
+
+<script>
+function doLogin() {
+  const val = document.getElementById('pwInput').value;
+  const err = document.getElementById('errMsg');
+  if (val === 'FRRAP001!') {
+    sessionStorage.setItem('frraAuth','1');
+    window.location.href = 'staff.html';
+  } else {
+    err.classList.add('show');
+    document.getElementById('pwInput').value='';
+    setTimeout(()=>err.classList.remove('show'),3000);
+  }
+}
+function togglePw() {
+  const inp=document.getElementById('pwInput');
+  inp.type = inp.type==='password'?'text':'password';
+}
+// If already logged in
+if(sessionStorage.getItem('frraAuth')==='1') window.location.href='staff.html';
+</script>
+</body>
+</html>
